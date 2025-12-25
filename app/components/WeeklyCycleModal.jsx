@@ -18,6 +18,8 @@ export const WeeklyCycleModal = ({ state, onClose, onComplete }) => {
   
   // AI分析結果
   const [analysis, setAnalysis] = useState(null);
+  const [greeting, setGreeting] = useState('');
+  const [weekClosingPrompt, setWeekClosingPrompt] = useState('');
   const [questions, setQuestions] = useState([]);
   
   // ユーザー回答
@@ -26,6 +28,7 @@ export const WeeklyCycleModal = ({ state, onClose, onComplete }) => {
   // AI提案
   const [proposal, setProposal] = useState(null);
   const [editedProposal, setEditedProposal] = useState(null);
+  const [selectedTasks, setSelectedTasks] = useState({}); // channelId -> { taskTitle: boolean }
   
   // 相談モード
   const [chatMode, setChatMode] = useState(false);
@@ -59,6 +62,8 @@ export const WeeklyCycleModal = ({ state, onClose, onComplete }) => {
         
         const data = await res.json();
         setAnalysis(data.report);
+        setGreeting(data.greeting || '');
+        setWeekClosingPrompt(data.weekClosingPrompt || '');
         setQuestions(data.questions || []);
         
         // 質問がなければStep1をスキップ
@@ -97,6 +102,19 @@ export const WeeklyCycleModal = ({ state, onClose, onComplete }) => {
       const data = await res.json();
       setProposal(data);
       setEditedProposal(JSON.parse(JSON.stringify(data)));
+      
+      // タスク選択状態を初期化（全てONで開始）
+      const initialSelected = {};
+      data.taskProposals?.forEach(tp => {
+        initialSelected[tp.channelId] = {};
+        tp.existingTasks?.forEach(t => {
+          initialSelected[tp.channelId][t.title] = true;
+        });
+        tp.newTasks?.forEach(t => {
+          initialSelected[tp.channelId][t.title] = true;
+        });
+      });
+      setSelectedTasks(initialSelected);
     } catch (e) {
       console.error(e);
       setError(e.message);
@@ -232,7 +250,21 @@ export const WeeklyCycleModal = ({ state, onClose, onComplete }) => {
     const newChannels = state.channels.map(c => {
       const kp = finalProposal?.kpiProposals?.find(p => p.channelId === c.id);
       const fp = finalProposal?.weeklyFocusProposals?.find(p => p.channelId === c.id);
+      const tp = finalProposal?.taskProposals?.find(p => p.channelId === c.id);
       const kpiAnalysis = analysis?.kpiAnalysis?.find(k => k.channelId === c.id);
+      const channelSelectedTasks = selectedTasks[c.id] || {};
+
+      // 持ち越しタスク（未完了で選択されているもの）
+      const carryoverTasks = c.tasks.once.filter(t => !t.done && channelSelectedTasks[t.title] !== false);
+      
+      // 新規タスク（選択されているもの）
+      const newOnceTasks = (tp?.newTasks || [])
+        .filter(t => t.type === 'once' && channelSelectedTasks[t.title] !== false)
+        .map(t => ({ id: `t${Date.now()}-${Math.random()}`, title: t.title, done: false }));
+      
+      const newContinuousTasks = (tp?.newTasks || [])
+        .filter(t => t.type === 'continuous' && channelSelectedTasks[t.title] !== false)
+        .map(t => ({ id: `c${Date.now()}-${Math.random()}`, title: t.title, target: t.target, current: 0, unit: t.unit || '回' }));
 
       return {
         ...c,
@@ -241,8 +273,8 @@ export const WeeklyCycleModal = ({ state, onClose, onComplete }) => {
         weeklyFocus: fp?.focus || '',
         consecutiveMiss: kpiAnalysis?.achieved ? 0 : (c.consecutiveMiss || 0) + 1,
         tasks: {
-          once: c.tasks.once.filter(t => !t.done),
-          continuous: c.tasks.continuous.map(t => ({ ...t, current: 0 }))
+          once: [...carryoverTasks, ...newOnceTasks],
+          continuous: [...c.tasks.continuous.map(t => ({ ...t, current: 0 })), ...newContinuousTasks]
         }
       };
     });
@@ -314,8 +346,21 @@ export const WeeklyCycleModal = ({ state, onClose, onComplete }) => {
           {/* Step 0: レポート */}
           {step === 0 && analysis && (
             <div className="p-5 space-y-4">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
+              {/* 挨拶 */}
+              <div className="flex items-center gap-2 text-sm">
                 <Sparkles size={14} className="text-violet-500" />
+                <span className="text-slate-700 font-medium">{greeting || '今週もお疲れさま'}</span>
+              </div>
+              
+              {/* 週締めプロンプト */}
+              {weekClosingPrompt && (
+                <div className="bg-violet-50 border border-violet-100 rounded-lg p-3">
+                  <p className="text-sm text-violet-700">{weekClosingPrompt}</p>
+                </div>
+              )}
+
+              {/* サマリー */}
+              <div className="text-sm text-slate-600">
                 {analysis.summary}
               </div>
 
@@ -501,6 +546,76 @@ export const WeeklyCycleModal = ({ state, onClose, onComplete }) => {
                       </div>
                     )}
                   </div>
+
+                  {/* タスク提案 */}
+                  {editedProposal.taskProposals?.length > 0 && (
+                    <div className="bg-slate-50 rounded-lg p-4">
+                      <div className="text-xs font-medium text-slate-500 mb-3">📋 来週のタスク</div>
+                      <div className="space-y-4">
+                        {editedProposal.taskProposals.map(tp => (
+                          <div key={tp.channelId}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-bold text-sm">{tp.channelIcon}</span>
+                              <span className="text-sm font-medium">{tp.channelName}</span>
+                            </div>
+                            <div className="pl-5 space-y-2">
+                              {/* 持ち越しタスク */}
+                              {tp.existingTasks?.map((t, i) => (
+                                <label key={`existing-${i}`} className="flex items-start gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedTasks[tp.channelId]?.[t.title] ?? true}
+                                    onChange={(e) => setSelectedTasks(prev => ({
+                                      ...prev,
+                                      [tp.channelId]: {
+                                        ...prev[tp.channelId],
+                                        [t.title]: e.target.checked
+                                      }
+                                    }))}
+                                    className="mt-0.5 rounded border-slate-300"
+                                  />
+                                  <div className="flex-1">
+                                    <span className="text-sm text-slate-700">{t.title}</span>
+                                    <span className="text-xs text-amber-600 ml-2">持ち越し</span>
+                                  </div>
+                                </label>
+                              ))}
+                              {/* 新規タスク */}
+                              {tp.newTasks?.map((t, i) => (
+                                <label key={`new-${i}`} className="flex items-start gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedTasks[tp.channelId]?.[t.title] ?? true}
+                                    onChange={(e) => setSelectedTasks(prev => ({
+                                      ...prev,
+                                      [tp.channelId]: {
+                                        ...prev[tp.channelId],
+                                        [t.title]: e.target.checked
+                                      }
+                                    }))}
+                                    className="mt-0.5 rounded border-slate-300"
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm text-slate-700">{t.title}</span>
+                                      <span className="text-xs bg-violet-100 text-violet-600 px-1.5 py-0.5 rounded">NEW</span>
+                                      {t.type === 'continuous' && (
+                                        <span className="text-xs text-slate-400">{t.target}{t.unit}</span>
+                                      )}
+                                    </div>
+                                    {t.reason && (
+                                      <p className="text-xs text-slate-500 mt-0.5">{t.reason}</p>
+                                    )}
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-slate-400 mt-3">チェックを外すとタスクから除外されます</p>
+                    </div>
+                  )}
 
                   {/* 励まし */}
                   {editedProposal.encouragement && (

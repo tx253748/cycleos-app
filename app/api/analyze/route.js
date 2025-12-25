@@ -4,8 +4,19 @@ export async function POST(req) {
   try {
     const { state } = await req.json();
     
+    // 現在の日付情報
+    const now = new Date();
+    const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][now.getDay()];
+    const dateStr = `${now.getMonth() + 1}/${now.getDate()}(${dayOfWeek})`;
+    const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+    const isFriday = now.getDay() === 5;
+    
     // データを要約して送信（トークン節約）
     const summary = {
+      today: dateStr,
+      dayOfWeek,
+      isWeekend,
+      isFriday,
       yearlyGoal: state.yearlyGoal,
       currentPhase: state.phases?.find(p => p.id === state.currentPhaseId),
       goal: state.goal,
@@ -20,8 +31,9 @@ export async function POST(req) {
         kpiCurrent: c.kpiCurrent,
         weeklyFocus: c.weeklyFocus,
         consecutiveMiss: c.consecutiveMiss || 0,
-        tasksOnce: c.tasks.once.length,
-        tasksDone: c.tasks.once.filter(t => t.done).length,
+        tasksOnce: c.tasks.once.map(t => ({ title: t.title, done: t.done })),
+        tasksContinuous: c.tasks.continuous.map(t => ({ title: t.title, target: t.target, current: t.current })),
+        backlog: c.backlog || [],
       })),
       monthlyDeals: state.deals?.filter(d => {
         const [m] = d.date.split('/').map(Number);
@@ -51,15 +63,21 @@ export async function POST(req) {
 - 励ましつつも現実的
 - 簡潔に話す
 
+【今日の日付】
+${dateStr}
+
 【分析の観点】
 - KPI達成率と傾向（連続未達は要注意）
 - 売上との相関（どのチャネルが成約に繋がってるか）
 - 資産の積み上げ状況
-- 稼働とのバランス
+- 今日が何曜日か（金曜〜日曜なら週締めを促す）
+- 既存タスクの進捗
 
 【出力形式】
 必ず以下のJSON形式で返してください。他のテキストは不要です。
 {
+  "greeting": "今日の挨拶（日付と曜日に触れる。20文字以内）",
+  "weekClosingPrompt": "週締めに関するコメント（金〜日なら促す、月〜木なら進捗確認。30文字以内）",
   "report": {
     "summary": "今週の一言コメント（50文字以内）",
     "kpiAnalysis": [

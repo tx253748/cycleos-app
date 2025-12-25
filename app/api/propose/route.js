@@ -17,6 +17,7 @@ export async function POST(req) {
         weeklyFocus: c.weeklyFocus,
         consecutiveMiss: c.consecutiveMiss || 0,
         tasks: c.tasks,
+        backlog: c.backlog || [],
       })),
       monthlyDeals: state.deals?.filter(d => {
         const [m] = d.date.split('/').map(Number);
@@ -44,6 +45,13 @@ export async function POST(req) {
 - 稼働が少ないなら全体的に調整
 - 稼働に余裕があるなら伸ばせるところを伸ばす
 
+【タスク提案の原則】
+- 各チャネルに2-3個の具体的なタスクを提案
+- ユーザーの目標・フェーズに合わせた内容
+- 実行可能で具体的なタスク名（「〇〇する」形式）
+- 既存の未完了タスクは持ち越しとして含める
+- 新規タスクは既存と被らないように
+
 【出力形式】
 必ず以下のJSON形式で返してください。
 {
@@ -66,9 +74,12 @@ export async function POST(req) {
       "channelId": 1,
       "channelName": "X",
       "channelIcon": "𝕏",
-      "tasks": [
-        {"type": "continuous", "title": "毎日投稿", "target": 5, "unit": "回"},
-        {"type": "once", "title": "固定ツイート更新", "note": "持ち越し"}
+      "existingTasks": [
+        {"title": "固定ツイート更新", "type": "once", "status": "carryover"}
+      ],
+      "newTasks": [
+        {"title": "実績ツイート3本作成", "type": "once", "reason": "信頼性向上のため"},
+        {"title": "リプライ営業10件", "type": "continuous", "target": 10, "unit": "件", "reason": "見込み客との接点増"}
       ]
     }
   ],
@@ -93,7 +104,7 @@ ${JSON.stringify(analysis, null, 2)}
 - 未達の理由: ${JSON.stringify(answers.reasons)}
 - 補足: ${answers.note || 'なし'}
 
-来週の提案をお願いします。`
+来週の提案をお願いします。既存の未完了タスクを持ち越しつつ、新しいタスクも2-3個提案してください。`
         }]
       })
     });
