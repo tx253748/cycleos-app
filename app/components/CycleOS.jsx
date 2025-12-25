@@ -10,6 +10,7 @@ import {
   AlertTriangle, Zap, Coffee, LogOut, Loader2
 } from 'lucide-react';
 import { WeeklyCycleModal } from './WeeklyCycleModal';
+import { AnalyticsPage } from './AnalyticsPage';
 import { useAuth } from '../contexts/AuthContext';
 import { useFirestore } from '../hooks/useFirestore';
 
@@ -789,7 +790,7 @@ const Sidebar = ({ state, tab, setTab, onCycle, user, onSignOut }) => (
       </div>
     </div>
     <nav className="flex-1 p-2 space-y-0.5">
-      {[{ id: 'dashboard', icon: LayoutDashboard, label: 'ダッシュボード' }, { id: 'deals', icon: DollarSign, label: '売上管理' }, { id: 'history', icon: History, label: '履歴' }, { id: 'settings', icon: Settings, label: '設定' }].map(item => {
+      {[{ id: 'dashboard', icon: LayoutDashboard, label: 'ダッシュボード' }, { id: 'analytics', icon: TrendingUp, label: '分析' }, { id: 'deals', icon: DollarSign, label: '売上管理' }, { id: 'history', icon: History, label: '履歴' }, { id: 'settings', icon: Settings, label: '設定' }].map(item => {
         const Icon = item.icon;
         return <button key={item.id} onClick={() => setTab(item.id)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm ${tab === item.id ? 'bg-violet-100 text-violet-700 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}><Icon size={15} />{item.label}</button>;
       })}
@@ -1233,6 +1234,7 @@ export default function CycleOS() {
 
   const content = () => {
     switch (tab) {
+      case 'analytics': return <AnalyticsPage state={state} />;
       case 'deals': return <DealsPage state={state} onAdd={() => setModal('deal')} />;
       case 'history': return <HistoryPage state={state} />;
       case 'settings': return <SettingsPage state={state} onEditGoal={() => setModal('goal')} onReset={() => { if (confirm('リセット？')) setState(createInitialState()); }} onExport={handleExport} onImport={() => setModal('import')} />;
@@ -1264,7 +1266,7 @@ export default function CycleOS() {
       {toast && <Toast message={toast.message} icon={toast.icon} type={toast.type} onClose={() => setToast(null)} />}
       <Sidebar state={state} tab={tab} setTab={setTab} onCycle={() => setModal('cycle')} user={user} onSignOut={signOut} />
       <div className="ml-52">
-        <Header title={tab === 'dashboard' ? 'ダッシュボード' : tab === 'deals' ? '売上管理' : tab === 'history' ? '履歴' : '設定'} week={state.currentWeekStart} />
+        <Header title={tab === 'dashboard' ? 'ダッシュボード' : tab === 'analytics' ? '分析' : tab === 'deals' ? '売上管理' : tab === 'history' ? '履歴' : '設定'} week={state.currentWeekStart} />
         <main className="p-6">{content()}</main>
       </div>
 
