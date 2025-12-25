@@ -29,6 +29,20 @@ npm run dev
 | 変数名 | 説明 | 取得先 |
 |--------|------|--------|
 | ANTHROPIC_API_KEY | Claude API Key | https://console.anthropic.com/ |
+| NEXT_PUBLIC_FIREBASE_API_KEY | Firebase API Key | Firebase Console |
+| NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN | Firebase Auth Domain | Firebase Console |
+| NEXT_PUBLIC_FIREBASE_PROJECT_ID | Firebase Project ID | Firebase Console |
+| NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET | Firebase Storage Bucket | Firebase Console |
+| NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID | Firebase Messaging Sender ID | Firebase Console |
+| NEXT_PUBLIC_FIREBASE_APP_ID | Firebase App ID | Firebase Console |
+
+## Firebaseセットアップ
+
+1. https://console.firebase.google.com/ でプロジェクト作成
+2. Authentication → Sign-in method → Google を有効化
+3. Firestore Database → データベースを作成
+4. ルール → `firestore.rules` の内容をコピー
+5. プロジェクト設定 → マイアプリ → Web → 設定値を取得
 
 ## Vercelへのデプロイ
 

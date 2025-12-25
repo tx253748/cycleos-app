@@ -7,9 +7,11 @@ import {
   LayoutDashboard, Settings, Plus, Edit3, DollarSign, History,
   Flame, Trophy, Star, Award, Rocket, Inbox, Download, Upload, Trash2,
   Check, AlertCircle, ChevronRight, ChevronLeft, MapPin, TrendingUp, TrendingDown, Minus,
-  AlertTriangle, Zap, Coffee
+  AlertTriangle, Zap, Coffee, LogOut, Loader2
 } from 'lucide-react';
 import { WeeklyCycleModal } from './WeeklyCycleModal';
+import { useAuth } from '../contexts/AuthContext';
+import { useFirestore } from '../hooks/useFirestore';
 
 // ============================================
 // Constants
@@ -770,7 +772,7 @@ const Onboarding = ({ onComplete, onDemo }) => {
 // Sidebar
 // ============================================
 
-const Sidebar = ({ state, tab, setTab, onCycle }) => (
+const Sidebar = ({ state, tab, setTab, onCycle, user, onSignOut }) => (
   <div className="w-52 bg-white border-r border-slate-200 h-screen fixed left-0 top-0 flex flex-col">
     <div className="h-14 px-4 flex items-center gap-2 border-b border-slate-100">
       <div className="w-7 h-7 bg-violet-600 rounded-md flex items-center justify-center"><Layers size={14} className="text-white" /></div>
@@ -797,9 +799,26 @@ const Sidebar = ({ state, tab, setTab, onCycle }) => (
         <Sparkles size={14} />週次サイクル
       </button>
     </div>
-    <div className="px-3 py-3 border-t border-slate-100 flex items-center gap-2">
-      <div className="w-7 h-7 bg-emerald-500 rounded-md flex items-center justify-center text-white text-xs font-bold">{state.yearlyGoal.title ? state.yearlyGoal.title[0] : 'U'}</div>
-      <div className="text-xs text-slate-500">{state.totalTasksCompleted} tasks</div>
+    <div className="px-3 py-3 border-t border-slate-100">
+      <div className="flex items-center gap-2 mb-2">
+        {user?.photoURL ? (
+          <img src={user.photoURL} alt="" className="w-7 h-7 rounded-md" />
+        ) : (
+          <div className="w-7 h-7 bg-emerald-500 rounded-md flex items-center justify-center text-white text-xs font-bold">
+            {user?.displayName?.[0] || 'U'}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-medium text-slate-700 truncate">{user?.displayName || 'User'}</div>
+          <div className="text-xs text-slate-400">{state.totalTasksCompleted} tasks</div>
+        </div>
+      </div>
+      <button 
+        onClick={onSignOut}
+        className="w-full flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-md"
+      >
+        <LogOut size={12} />ログアウト
+      </button>
     </div>
   </div>
 );
@@ -1162,7 +1181,8 @@ const SettingsPage = ({ state, onEditGoal, onReset, onExport, onImport }) => (
 // ============================================
 
 export default function CycleOS() {
-  const [state, setState] = useLocalStorage('cycleos-v25', createInitialState());
+  const { user, signOut } = useAuth();
+  const [state, setState, { loading: firestoreLoading }] = useFirestore(createInitialState());
   const [tab, setTab] = useState('dashboard');
   const [modal, setModal] = useState(null);
   const [confetti, setConfetti] = useState(false);
@@ -1170,6 +1190,15 @@ export default function CycleOS() {
 
   const showToast = (msg, icon, type = 'success') => setToast({ message: msg, icon, type });
   const boom = () => { setConfetti(true); setTimeout(() => setConfetti(false), 2500); };
+
+  // Firestoreロード中
+  if (firestoreLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+      </div>
+    );
+  }
 
   if (!state.isOnboarded) return <Onboarding onComplete={setState} onDemo={() => setState(createDemoState())} />;
 
@@ -1233,7 +1262,7 @@ export default function CycleOS() {
     <div className="min-h-screen bg-slate-50">
       <Confetti active={confetti} />
       {toast && <Toast message={toast.message} icon={toast.icon} type={toast.type} onClose={() => setToast(null)} />}
-      <Sidebar state={state} tab={tab} setTab={setTab} onCycle={() => setModal('cycle')} />
+      <Sidebar state={state} tab={tab} setTab={setTab} onCycle={() => setModal('cycle')} user={user} onSignOut={signOut} />
       <div className="ml-52">
         <Header title={tab === 'dashboard' ? 'ダッシュボード' : tab === 'deals' ? '売上管理' : tab === 'history' ? '履歴' : '設定'} week={state.currentWeekStart} />
         <main className="p-6">{content()}</main>
