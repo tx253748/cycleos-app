@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,6 +10,12 @@ export const useFirestore = (initialState) => {
   const [state, setState] = useState(initialState);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const stateRef = useRef(state);
+
+  // stateが変わるたびにrefを更新
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   // ユーザーのドキュメントパス
   const getDocRef = useCallback(() => {
@@ -32,10 +38,13 @@ export const useFirestore = (initialState) => {
       docRef,
       (docSnap) => {
         if (docSnap.exists()) {
-          setState(docSnap.data());
+          const data = docSnap.data();
+          setState(data);
+          stateRef.current = data;
         } else {
           // 新規ユーザー: 初期状態を保存
           setState(initialState);
+          stateRef.current = initialState;
         }
         setLoading(false);
       },
@@ -58,14 +67,22 @@ export const useFirestore = (initialState) => {
     }
 
     try {
-      const stateToSave = typeof newState === 'function' ? newState(state) : newState;
-      await setDoc(docRef, stateToSave, { merge: true });
+      // 関数の場合は最新のstateRefを使用
+      const stateToSave = typeof newState === 'function' 
+        ? newState(stateRef.current) 
+        : newState;
+      
+      // ローカル状態を即時更新
       setState(stateToSave);
+      stateRef.current = stateToSave;
+      
+      // Firestoreに保存
+      await setDoc(docRef, stateToSave, { merge: true });
     } catch (err) {
       console.error('Save error:', err);
       setError(err.message);
     }
-  }, [getDocRef, state]);
+  }, [getDocRef]);
 
   return [state, saveState, { loading, error }];
 };
