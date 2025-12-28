@@ -773,56 +773,64 @@ const Onboarding = ({ onComplete, onDemo }) => {
 // Sidebar
 // ============================================
 
-const Sidebar = ({ state, tab, setTab, onCycle, user, onSignOut }) => (
-  <div className="w-52 bg-white border-r border-slate-200 h-screen fixed left-0 top-0 flex flex-col">
-    <div className="h-14 px-4 flex items-center gap-2 border-b border-slate-100">
-      <div className="w-7 h-7 bg-violet-600 rounded-md flex items-center justify-center"><Layers size={14} className="text-white" /></div>
-      <span className="font-bold text-slate-800 text-sm">CycleOS</span>
-    </div>
-    <div className="px-3 py-2 border-b border-slate-100">
-      <div className="flex items-center gap-2 text-xs"><Bot size={14} className="text-violet-500" /><span className="text-slate-600">{pick(GREETINGS)}</span></div>
-    </div>
-    <div className="px-3 py-3 border-b border-slate-100 flex gap-2">
-      <div className="flex-1 bg-amber-50 rounded-md px-2 py-1.5 text-center"><div className="text-xs font-bold text-amber-700">Lv.{state.level}</div></div>
-      <div className="flex-1 bg-orange-50 rounded-md px-2 py-1.5 flex items-center justify-center gap-1">
-        <Flame size={12} className="text-orange-500" />
-        <span className="text-xs font-bold text-orange-700">{state.streak}週</span>
+const Sidebar = ({ state, tab, setTab, onCycle, user, onSignOut }) => {
+  const [greeting, setGreeting] = useState('');
+  
+  useEffect(() => {
+    setGreeting(pick(GREETINGS));
+  }, []);
+
+  return (
+    <div className="w-52 bg-white border-r border-slate-200 h-screen fixed left-0 top-0 flex flex-col">
+      <div className="h-14 px-4 flex items-center gap-2 border-b border-slate-100">
+        <div className="w-7 h-7 bg-violet-600 rounded-md flex items-center justify-center"><Layers size={14} className="text-white" /></div>
+        <span className="font-bold text-slate-800 text-sm">CycleOS</span>
       </div>
-    </div>
-    <nav className="flex-1 p-2 space-y-0.5">
-      {[{ id: 'dashboard', icon: LayoutDashboard, label: 'ダッシュボード' }, { id: 'analytics', icon: TrendingUp, label: '分析' }, { id: 'deals', icon: DollarSign, label: '売上管理' }, { id: 'history', icon: History, label: '履歴' }, { id: 'settings', icon: Settings, label: '設定' }].map(item => {
-        const Icon = item.icon;
-        return <button key={item.id} onClick={() => setTab(item.id)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm ${tab === item.id ? 'bg-violet-100 text-violet-700 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}><Icon size={15} />{item.label}</button>;
-      })}
-    </nav>
-    <div className="p-3 border-t border-slate-100">
-      <button onClick={onCycle} className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-md text-sm font-medium">
-        <Sparkles size={14} />週次サイクル
-      </button>
-    </div>
-    <div className="px-3 py-3 border-t border-slate-100">
-      <div className="flex items-center gap-2 mb-2">
-        {user?.photoURL ? (
-          <img src={user.photoURL} alt="" className="w-7 h-7 rounded-md" />
-        ) : (
-          <div className="w-7 h-7 bg-emerald-500 rounded-md flex items-center justify-center text-white text-xs font-bold">
-            {user?.displayName?.[0] || 'U'}
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="text-xs font-medium text-slate-700 truncate">{user?.displayName || 'User'}</div>
-          <div className="text-xs text-slate-400">{state.totalTasksCompleted} tasks</div>
+      <div className="px-3 py-2 border-b border-slate-100">
+        <div className="flex items-center gap-2 text-xs"><Bot size={14} className="text-violet-500" /><span className="text-slate-600">{greeting}</span></div>
+      </div>
+      <div className="px-3 py-3 border-b border-slate-100 flex gap-2">
+        <div className="flex-1 bg-amber-50 rounded-md px-2 py-1.5 text-center"><div className="text-xs font-bold text-amber-700">Lv.{state.level}</div></div>
+        <div className="flex-1 bg-orange-50 rounded-md px-2 py-1.5 flex items-center justify-center gap-1">
+          <Flame size={12} className="text-orange-500" />
+          <span className="text-xs font-bold text-orange-700">{state.streak}週</span>
         </div>
       </div>
-      <button 
-        onClick={onSignOut}
-        className="w-full flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-md"
-      >
+      <nav className="flex-1 p-2 space-y-0.5">
+        {[{ id: 'dashboard', icon: LayoutDashboard, label: 'ダッシュボード' }, { id: 'analytics', icon: TrendingUp, label: '分析' }, { id: 'deals', icon: DollarSign, label: '売上管理' }, { id: 'history', icon: History, label: '履歴' }, { id: 'settings', icon: Settings, label: '設定' }].map(item => {
+          const Icon = item.icon;
+          return <button key={item.id} onClick={() => setTab(item.id)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm ${tab === item.id ? 'bg-violet-100 text-violet-700 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}><Icon size={15} />{item.label}</button>;
+        })}
+      </nav>
+      <div className="p-3 border-t border-slate-100">
+        <button onClick={onCycle} className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-md text-sm font-medium">
+          <Sparkles size={14} />週次サイクル
+        </button>
+      </div>
+      <div className="px-3 py-3 border-t border-slate-100">
+        <div className="flex items-center gap-2 mb-2">
+          {user?.photoURL ? (
+            <img src={user.photoURL} alt="" className="w-7 h-7 rounded-md" />
+          ) : (
+            <div className="w-7 h-7 bg-emerald-500 rounded-md flex items-center justify-center text-white text-xs font-bold">
+              {user?.displayName?.[0] || 'U'}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium text-slate-700 truncate">{user?.displayName || 'User'}</div>
+            <div className="text-xs text-slate-400">{state.totalTasksCompleted} tasks</div>
+          </div>
+        </div>
+        <button 
+          onClick={onSignOut}
+          className="w-full flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-md"
+        >
         <LogOut size={12} />ログアウト
       </button>
     </div>
   </div>
-);
+  );
+};
 
 // ============================================
 // Header
